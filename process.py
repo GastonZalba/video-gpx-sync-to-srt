@@ -1,11 +1,10 @@
 import os
 import glob
-import gpxpy
 import pytz
-import time
-from datetime import datetime, timedelta
+import gpxpy
 import traceback
 from pymediainfo import MediaInfo
+from datetime import datetime, timedelta
 
 input_folder = 'input'
 output_folder = 'output'
@@ -15,7 +14,7 @@ time_zone_video = None
 
 # to interpolate coordinates values betweeen points
 # `None` to disable
-interpolate_every_seconds = 1
+interpolation_freq_in_seconds = 1
 
 output_file = ''
 
@@ -25,53 +24,54 @@ def init():
 
     try:
 
-        parsed_movies = parse_movies()
+        parsed_videos = parse_videos()
         parsed_gpx = parse_gpx()
 
-        for pmovie in parsed_movies:
+        for pvideo in parsed_videos:
             collect_srt = []
             for pgpx in parsed_gpx:
 
-                if (pgpx['time'] < pmovie['time_start']):
+                if (pgpx['time'] < pvideo['time_start']):
                     continue                
                 
-                if (pgpx['time'] <= pmovie['time_end']):
+                if (pgpx['time'] <= pvideo['time_end']):
                     collect_srt.append(pgpx)
 
             points_found = len(collect_srt)
 
-            print(f'Video name: {pmovie["file_name"]}')
-            print(f'Duration: {pmovie["duration"]}')
-            print(f'Start time: {pmovie["time_start"]}')
-            print(f'End time: {pmovie["time_end"]}')
+            print(f'Video name: {pvideo["file_name"]}')
+            print(f'Duration: {pvideo["duration"]}')
+            print(f'Start time: {pvideo["time_start"]}')
+            print(f'End time: {pvideo["time_end"]}')
 
             if (points_found > 0):
-                print(f'GPX matched file {pmovie["file_name"]} witch {points_found} points')
-                write_srt(collect_srt, pmovie["file_name"])
+                print(f'GPX matched file {pvideo["file_name"]} witch {points_found} points')
+                write_srt(collect_srt, pvideo["file_name"])
+            else:
+                print(f'GPX tracks not synced with the video. Check timezone')
 
-
-        print('Process was completed successfully')
+        print('Process was completed')
 
     except Exception as error:
         print(error)
         print(traceback.format_exc())
 
 
-def parse_movies():
+def parse_videos():
 
-    parsed_movies = []
+    parsed_videos = []
 
-    def get_movies():
-        types = ('*.mp4', '*.mts', '*.mov')
+    def get_videos():
+        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v')
         files_grabbed = []
         for type in types:
             files_grabbed.extend(glob.glob(input_folder + '\movies\\' + type))
         return files_grabbed
 
-    movies = get_movies()
+    videos = get_videos()
 
-    for movie in movies:
-        media_info = MediaInfo.parse(movie)
+    for video in videos:
+        media_info = MediaInfo.parse(video)
         duration_in_s = media_info.tracks[0].duration / 1000
         encoded_date = media_info.tracks[0].encoded_date
         
@@ -84,15 +84,15 @@ def parse_movies():
             utc=pytz.UTC
             encoded_date = encoded_date.replace(tzinfo=utc)
         
-        parsed_movies.append({
-            'file_name': os.path.splitext(os.path.basename(movie))[0],
-            'file_path': movie,
+        parsed_videos.append({
+            'file_name': os.path.splitext(os.path.basename(video))[0],
+            'file_path': video,
             'duration': duration_in_s,
             'time_start': encoded_date - timedelta(0, round(duration_in_s)),
             'time_end': encoded_date
         })
 
-    return parsed_movies
+    return parsed_videos
 
 
 def parse_gpx():
@@ -145,11 +145,11 @@ def parse_gpx():
                                 time_diff = point.time - prev_point.time
                                 time_diff_seconds = time_diff.total_seconds()
 
-                                if interpolate_every_seconds != None:
+                                if interpolation_freq_in_seconds != None:
                                     intermediate_points = []
-                                    if round(time_diff_seconds) > interpolate_every_seconds:
+                                    if round(time_diff_seconds) > interpolation_freq_in_seconds:
                                         extra_points = round(
-                                            time_diff_seconds / interpolate_every_seconds) - 1
+                                            time_diff_seconds / interpolation_freq_in_seconds) - 1
                                         intermediate_points = intermediates(
                                             prev_point, point, extra_points)
 
