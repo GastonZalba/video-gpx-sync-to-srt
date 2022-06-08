@@ -13,7 +13,7 @@ output_folder = 'output'
 time_zone_gpx = 'America/Argentina/Buenos_Aires'
 time_zone_video = None
 
-# to interpolaate coordinates values betweeen points
+# to interpolate coordinates values betweeen points
 # `None` to disable
 interpolate_every_seconds = 1
 
@@ -189,7 +189,7 @@ def write_srt(points, file_name):
             '<font size="36">FrameCnt : n/a, DiffTime : {:.0f}ms\n'.format(point['diff_time']))
         output_file.write(f'{point["time"]}\n')
         output_file.write(
-            f'[iso : n/a] [shutter : n/a] [fnum : n/a] [ev : n/a] [ct : n/a] [color_md : n/a] [focal_len : n/a] [latitude : {point["latitude"]}] [longtitude : {point["longitude"]}] [altitude: {point["elevation"]}] </font>\n')
+            f'[latitude : {point["latitude"]}] [longitude : {point["longitude"]}] [altitude: {point["elevation"]}] </font>\n')
         output_file.write('\n')
 
         line_counter += 1
