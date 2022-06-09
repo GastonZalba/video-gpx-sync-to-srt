@@ -6,7 +6,7 @@ Script to sync video and gpx files (using the date and time metadata), to export
 - Adjust time zone (gpx and video files separatly)
 - Adjust or disable the interpolation frequency (this add extra points betweeen the original on the gpx tracks)
 - Run `python process.py`
-- Check the console, check the `output` folder fo the srt files
+- Check the console, check the `output` folder for the srt files
 
 # @TODO
 - Improve README
