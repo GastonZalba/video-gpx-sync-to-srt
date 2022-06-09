@@ -10,7 +10,7 @@ input_folder = 'input'
 output_folder = 'output'
 
 time_zone_gpx = 'America/Argentina/Buenos_Aires'
-time_zone_video = None
+time_zone_video = 'America/Argentina/Buenos_Aires'
 
 # to interpolate coordinates values betweeen points
 # `None` to disable
@@ -24,8 +24,14 @@ def init():
 
     try:
 
+        print('--> PROCESS STARTED <--')
+
+        print('\t')
+
         parsed_videos = parse_videos()
         parsed_gpx = parse_gpx()
+
+        synced = 0
 
         for pvideo in parsed_videos:
             collect_srt = []
@@ -39,18 +45,29 @@ def init():
 
             points_found = len(collect_srt)
 
-            print(f'Video name: {pvideo["file_name"]}')
-            print(f'Duration: {pvideo["duration"]}')
+            print('\t')
+
+            print(f'Video name: {pvideo["file_name"]}{pvideo["extension"]}')
+            print(f'Duration (sec): {pvideo["duration"]}')
             print(f'Start time: {pvideo["time_start"]}')
             print(f'End time: {pvideo["time_end"]}')
 
             if (points_found > 0):
-                print(f'GPX matched file {pvideo["file_name"]} witch {points_found} points')
+                print(f'-> GPX matched file {pvideo["file_name"]} witch {points_found} points')
                 write_srt(collect_srt, pvideo["file_name"])
+                synced += 1
             else:
-                print(f'GPX tracks not synced with the video. Check timezone')
+                print(f'-> WARNING: GPX tracks not synced with the video. Check the time zones.')
+        
+        print('\t')
+        print('--> PROCESS WAS COMPLETED <--')
+        print('\t')
+        print('------------------------------')
+        print(f'-> {synced} videos synced')
+        print(f'-> {(len(parsed_videos)-synced)} videos not synced')
+        print('------------------------------')
+        
 
-        print('Process was completed')
 
     except Exception as error:
         print(error)
@@ -59,37 +76,85 @@ def init():
 
 def parse_videos():
 
+    def date_string_to_datetime(dt, format):
+        try:
+            return datetime.strptime(dt, format)
+        except:
+            return False
+        
+    datetime_formats = [
+        '%Z %Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M:%S%z',
+        '%Y-%m-%d %H:%M:%S.%f'
+    ]
+
     parsed_videos = []
 
     def get_videos():
-        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v')
+        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf')
         files_grabbed = []
         for type in types:
-            files_grabbed.extend(glob.glob(input_folder + '\movies\\' + type))
+            files_grabbed.extend(glob.glob(input_folder + '/videos/' + type))
         return files_grabbed
 
     videos = get_videos()
 
+    print(f'{len(videos)} videos have been found.')    
+
     for video in videos:
         media_info = MediaInfo.parse(video)
-        duration_in_s = media_info.tracks[0].duration / 1000
-        encoded_date = media_info.tracks[0].encoded_date
-        
-        encoded_date = datetime.strptime(encoded_date, '%Z %Y-%m-%d %H:%M:%S')
+        duration_in_s = int(float(media_info.tracks[0].duration)) / 1000
 
+        video_track = media_info.tracks[0]
+
+        #
+        invert_duration = False
+
+        # canon, phones, insta and others saves the date on this field
+        # datetime of the end of the file
+        recorded_date = video_track.encoded_date
+       
+        if not recorded_date:
+            # sony cams
+            # datetime of the beggining of the file
+            recorded_date = video_track.recorded_date
+            invert_duration = True
+
+        for df in datetime_formats:
+            conversion = date_string_to_datetime(recorded_date, df)
+            if conversion:
+                recorded_date = conversion
+                break
+
+        if not recorded_date:
+            print(f'{video} has no date information and cannot be used')
+            continue
+
+        if isinstance(recorded_date, str):
+            print(f'{video} has unrecognized date format {recorded_date} and cannot be used')
+            continue
+            
         if time_zone_video:
-            encoded_date = encoded_date.astimezone(
+            recorded_date = recorded_date.astimezone(
                 pytz.timezone(time_zone_video))
         else:
-            utc=pytz.UTC
-            encoded_date = encoded_date.replace(tzinfo=utc)
-        
+            utc = pytz.UTC
+            recorded_date = recorded_date.replace(tzinfo=utc)
+
+        if invert_duration:
+            time_start = recorded_date
+            time_end = recorded_date + timedelta(0, round(duration_in_s))
+        else:
+            time_start = recorded_date - timedelta(0, round(duration_in_s))        
+            time_end = recorded_date 
+
         parsed_videos.append({
             'file_name': os.path.splitext(os.path.basename(video))[0],
+            'extension': os.path.splitext(os.path.basename(video))[1],
             'file_path': video,
             'duration': duration_in_s,
-            'time_start': encoded_date - timedelta(0, round(duration_in_s)),
-            'time_end': encoded_date
+            'time_start': time_start,
+            'time_end': time_end
         })
 
     return parsed_videos
@@ -98,6 +163,9 @@ def parse_videos():
 def parse_gpx():
 
     parsed_gpx_points = []
+
+    def get_gpx():
+        return glob.glob(input_folder + '/gpx/' + '*.gpx')
 
     def store_point_track(point, prev_point, start_time, time_diff_seconds):
         parsed_gpx_points.append({
@@ -110,61 +178,60 @@ def parse_gpx():
             "elevation": point.elevation
         })
 
-    for subdir, dirs, files in os.walk(input_folder + '\gpx'):
-        for file in files:
+    gpxs = get_gpx()
 
-            filepath = subdir + os.sep + file
+    print(f'{len(gpxs)} gpx have been found.')    
 
-            if file.endswith(".gpx"):
+    for gpx_path in gpxs:
 
-                input_file = open(filepath, 'r')
-                gpx = gpxpy.parse(input_file)
-                input_file.close()
+        input_file = open(gpx_path, 'r')
+        gpx = gpxpy.parse(input_file)
+        input_file.close()
 
-                if len(gpx.tracks) == 0:
-                    raise Exception('File has no tracks')
+        if len(gpx.tracks) == 0:
+            raise Exception('File has no tracks')
 
-                for track in gpx.tracks:
+        for track in gpx.tracks:
 
-                    for segment in track.segments:
-                        prev_point = None
-                        start_time = None
+            for segment in track.segments:
+                prev_point = None
+                start_time = None
 
-                        for point in segment.points:
+                for point in segment.points:
 
-                            # maybe correct the gpx timezone
-                            if time_zone_gpx:
-                                point.time = point.time.astimezone(
-                                    pytz.timezone(time_zone_gpx))
+                    # maybe correct the gpx timezone
+                    if time_zone_gpx:
+                        point.time = point.time.astimezone(
+                            pytz.timezone(time_zone_gpx))
 
-                            if not start_time:
-                                start_time = point.time
+                    if not start_time:
+                        start_time = point.time
 
-                            if prev_point:
+                    if prev_point:
 
-                                time_diff = point.time - prev_point.time
-                                time_diff_seconds = time_diff.total_seconds()
+                        time_diff = point.time - prev_point.time
+                        time_diff_seconds = time_diff.total_seconds()
 
-                                if interpolation_freq_in_seconds != None:
-                                    intermediate_points = []
-                                    if round(time_diff_seconds) > interpolation_freq_in_seconds:
-                                        extra_points = round(
-                                            time_diff_seconds / interpolation_freq_in_seconds) - 1
-                                        intermediate_points = intermediates(
-                                            prev_point, point, extra_points)
+                        if interpolation_freq_in_seconds != None:
+                            intermediate_points = []
+                            if round(time_diff_seconds) > interpolation_freq_in_seconds:
+                                extra_points = round(
+                                    time_diff_seconds / interpolation_freq_in_seconds) - 1
+                                intermediate_points = intermediates(
+                                    prev_point, point, extra_points)
 
-                                        if len(intermediate_points):
-                                            for ipoint in intermediate_points:
-                                                time_diff = ipoint.time - prev_point.time
-                                                time_diff_seconds = time_diff.total_seconds()
-                                                store_point_track(
-                                                    ipoint, prev_point, start_time, time_diff_seconds)
-                                                prev_point = ipoint
+                                if len(intermediate_points):
+                                    for ipoint in intermediate_points:
+                                        time_diff = ipoint.time - prev_point.time
+                                        time_diff_seconds = time_diff.total_seconds()
+                                        store_point_track(
+                                            ipoint, prev_point, start_time, time_diff_seconds)
+                                        prev_point = ipoint
 
-                                store_point_track(
-                                    point, prev_point, start_time, time_diff_seconds)
+                        store_point_track(
+                            point, prev_point, start_time, time_diff_seconds)
 
-                            prev_point = point
+                    prev_point = point
 
     return parsed_gpx_points
 

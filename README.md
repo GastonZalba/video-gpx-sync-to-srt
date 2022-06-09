@@ -12,3 +12,4 @@ Script to sync video and gpx files (using the date and time metadata), to export
 - Improve README
 - Improve comments
 - Add console prompts or/and a separate file for parameters
+- Add option to offset the srt or the video in x seconds
