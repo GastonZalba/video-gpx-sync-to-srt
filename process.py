@@ -10,11 +10,14 @@ input_folder = 'input'
 output_folder = 'output'
 
 time_zone_gpx = 'America/Argentina/Buenos_Aires'
-time_zone_video = 'America/Argentina/Buenos_Aires'
+time_zone_video = None
 
-# to interpolate coordinates values betweeen points
+# to interpolate coordinates betweeen existing points in the gpx
 # `None` to disable
 interpolation_freq_in_seconds = 1
+
+# date could be the beggining or the end of the file
+stored_date_is_out = True
 
 output_file = ''
 
@@ -67,8 +70,6 @@ def init():
         print(f'-> {(len(parsed_videos)-synced)} videos not synced')
         print('------------------------------')
         
-
-
     except Exception as error:
         print(error)
         print(traceback.format_exc())
@@ -107,46 +108,41 @@ def parse_videos():
 
         video_track = media_info.tracks[0]
 
-        #
-        invert_duration = False
-
         # canon, phones, insta and others saves the date on this field
         # datetime of the end of the file
-        recorded_date = video_track.encoded_date
-       
-        if not recorded_date:
-            # sony cams
-            # datetime of the beggining of the file
-            recorded_date = video_track.recorded_date
-            invert_duration = True
+        stored_date = video_track.encoded_date
+        
+        if not stored_date:
+            # sony and panasonic cameras
+            stored_date = video_track.recorded_date
 
         for df in datetime_formats:
-            conversion = date_string_to_datetime(recorded_date, df)
+            conversion = date_string_to_datetime(stored_date, df)
             if conversion:
-                recorded_date = conversion
+                stored_date = conversion
                 break
 
-        if not recorded_date:
+        if not stored_date:
             print(f'{video} has no date information and cannot be used')
             continue
 
-        if isinstance(recorded_date, str):
-            print(f'{video} has unrecognized date format {recorded_date} and cannot be used')
+        if isinstance(stored_date, str):
+            print(f'{video} has unrecognized date format {stored_date} and cannot be used')
             continue
             
         if time_zone_video:
-            recorded_date = recorded_date.astimezone(
+            stored_date = stored_date.astimezone(
                 pytz.timezone(time_zone_video))
         else:
             utc = pytz.UTC
-            recorded_date = recorded_date.replace(tzinfo=utc)
+            stored_date = stored_date.replace(tzinfo=utc)
 
-        if invert_duration:
-            time_start = recorded_date
-            time_end = recorded_date + timedelta(0, round(duration_in_s))
+        if stored_date_is_out == True:
+            time_start = stored_date - timedelta(0, round(duration_in_s))         
+            time_end = stored_date 
         else:
-            time_start = recorded_date - timedelta(0, round(duration_in_s))        
-            time_end = recorded_date 
+            time_start = stored_date
+            time_end = stored_date + timedelta(0, round(duration_in_s))        
 
         parsed_videos.append({
             'file_name': os.path.splitext(os.path.basename(video))[0],
