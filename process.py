@@ -12,29 +12,29 @@ from datetime import datetime, timedelta
 input_folder = 'input'
 output_folder = 'output'
 
+# by default, use local time zones
 time_zone_gpx = str(get_localzone())
 time_zone_video = str(get_localzone())
 
 # to interpolate coordinates betweeen existing points in the gpx
-# `False` to disable
-interpolation_freq_in_seconds = 1
+interpolation_freq_in_seconds = 0
 
-# date could be the beggining or the end of the file
+# date could be the beginning or the end of the file
 stored_date_is_end = False
 
-output_file = ''
-
-parser = argparse.ArgumentParser(description='Script to sync video and gpx files and export a srt file for each video.')
-parser.add_argument('--tzvideo', default=time_zone_gpx, help='Video Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
-parser.add_argument('--tzgpx', default=time_zone_video, help='GPX Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
-parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. `None` to disable (default: %(default)s)')
+parser = argparse.ArgumentParser(description='Script to sync video and gpx files recorded at the same time, and export a srt file for each video.')
+parser.add_argument('--folder', type=str, metavar='Input folder', default=input_folder, help='Folder with the videos and gpx files (default: %(default)s)')
+parser.add_argument('--output', type=str, metavar='Output folder', default=output_folder, help='Folder to export the srt files (default: %(default)s)')
+parser.add_argument('--tzvideo', default=time_zone_gpx, metavar='Video Time Zone', help='Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
+parser.add_argument('--tzgpx', default=time_zone_video, metavar='GPX Time Zone', help='Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
+parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. 0 to disable (default: %(default)s)')
 parser.add_argument('--dateisout', action='store_true', help='Stored metadata date match the end of the recording (default: %(default)s)')
 
 args = parser.parse_args()
 
 def init():
 
-    global output_file, interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end
+    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder, output_folder
 
     try:
 
@@ -46,9 +46,21 @@ def init():
         time_zone_video = string_to_num(args.tzvideo)
         time_zone_gpx = string_to_num(args.tzgpx)
         stored_date_is_end = args.dateisout
+        input_folder = args.folder
+        output_folder = args.output
+
+        # check if output folder exists
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
         parsed_videos = parse_videos()
         parsed_gpx = parse_gpx()
+
+        # if not videos or not gps are found, abort the process
+        if not parsed_videos or not parsed_gpx:
+            print('\t')
+            print(f'{Fore.RED}--> PROCESS WAS ABORTED WITH ERRORS <--{Style.RESET_ALL}')
+            return
 
         synced = 0
 
@@ -77,7 +89,8 @@ def init():
                 synced += 1
             else:
                 print(f'{Fore.YELLOW}-> WARNING: GPX tracks not synced with the video. Check the time zones.{Style.RESET_ALL}')
-        
+                print('\t')
+
         not_synced = len(parsed_videos)-synced
 
         print('\t')
@@ -97,7 +110,7 @@ def init():
         print('------------------------------')
         
     except Exception as error:
-        print(error)
+        print({Fore.RED}, error, {Style.RESET_ALL})
         print(traceback.format_exc())
 
 
@@ -108,7 +121,7 @@ def parse_videos():
             return datetime.strptime(dt, format)
         except:
             return False
-        
+    
     datetime_formats = [
         '%Z %Y-%m-%d %H:%M:%S',
         '%Y-%m-%d %H:%M:%S%z',
@@ -121,12 +134,15 @@ def parse_videos():
         types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg')
         files_grabbed = []
         for type in types:
-            files_grabbed.extend(glob.glob(input_folder + '/videos/' + type))
+            files_grabbed.extend(glob.glob(f'{input_folder}/{type}'))
         return files_grabbed
 
     videos = get_videos()
 
-    print(f'{len(videos)} videos have been found.')    
+    if len(videos):
+        print(f'{Fore.GREEN}{len(videos)} videos have been found.{Style.RESET_ALL}')    
+    else:
+        print(f'{Fore.RED}No videos have been found in folder "{input_folder}"{Style.RESET_ALL}')        
 
     for video in videos:
         media_info = MediaInfo.parse(video)
@@ -163,8 +179,8 @@ def parse_videos():
             else:
                 stored_date = stored_date.astimezone(
                     pytz.timezone(time_zone_video))
-                         # add timezone if empty
-            
+
+        # add timezone if empty            
         if stored_date.tzinfo is None or stored_date.tzinfo.utcoffset(stored_date) is None:
             utc = pytz.UTC
             stored_date = stored_date.replace(tzinfo=utc)
@@ -193,7 +209,7 @@ def parse_gpx():
     parsed_gpx_points = []
 
     def get_gpx():
-        return glob.glob(input_folder + '/gpx/' + '*.gpx')
+        return glob.glob(f'{input_folder}/*.gpx')
 
     def store_point_track(point, prev_point, start_time, time_diff_seconds):
         parsed_gpx_points.append({
@@ -208,7 +224,10 @@ def parse_gpx():
 
     gpxs = get_gpx()
 
-    print(f'{len(gpxs)} gpx have been found.')    
+    if len(gpxs):
+        print(f'{Fore.GREEN}{len(gpxs)} gpx have been found.{Style.RESET_ALL}')    
+    else:
+        print(f'{Fore.RED}No .gpx files have been found in folder "{input_folder}"{Style.RESET_ALL}')     
 
     for gpx_path in gpxs:
 
@@ -254,7 +273,7 @@ def parse_gpx():
                         time_diff = point.time - prev_point.time
                         time_diff_seconds = time_diff.total_seconds()
 
-                        if interpolation_freq_in_seconds != None:
+                        if interpolation_freq_in_seconds:
                             intermediate_points = []
                             if round(time_diff_seconds) > interpolation_freq_in_seconds:
                                 extra_points = round(
