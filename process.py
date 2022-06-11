@@ -20,7 +20,7 @@ time_zone_video = str(get_localzone())
 interpolation_freq_in_seconds = 1
 
 # date could be the beggining or the end of the file
-stored_date_is_end = True
+stored_date_is_end = False
 
 output_file = ''
 
@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(description='Script to sync video and gpx files
 parser.add_argument('--tzvideo', default=time_zone_gpx, help='Video Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
 parser.add_argument('--tzgpx', default=time_zone_video, help='GPX Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
 parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. `None` to disable (default: %(default)s)')
-parser.add_argument('--dateisstart', action='store_true', help='Stored metadata date match the start of the recording (default: %(default)s)')
+parser.add_argument('--dateisout', action='store_true', help='Stored metadata date match the end of the recording (default: %(default)s)')
 
 args = parser.parse_args()
 
@@ -45,7 +45,7 @@ def init():
         interpolation_freq_in_seconds = args.interpolation
         time_zone_video = string_to_num(args.tzvideo)
         time_zone_gpx = string_to_num(args.tzgpx)
-        stored_date_is_end = not args.dateisstart
+        stored_date_is_end = args.dateisout
 
         parsed_videos = parse_videos()
         parsed_gpx = parse_gpx()
@@ -118,7 +118,7 @@ def parse_videos():
     parsed_videos = []
 
     def get_videos():
-        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf')
+        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg')
         files_grabbed = []
         for type in types:
             files_grabbed.extend(glob.glob(input_folder + '/videos/' + type))
@@ -149,11 +149,11 @@ def parse_videos():
                 break
 
         if not stored_date:
-            print(f'{video} has no date information and cannot be used')
+            print(f'{Fore.RED}{video} has no date information and cannot be used{Style.RESET_ALL}')
             continue
 
         if isinstance(stored_date, str):
-            print(f'{video} has unrecognized date format {stored_date} and cannot be used')
+            print(f'{Fore.RED}{video} has an unrecognized date format {stored_date} and cannot be used{Style.RESET_ALL}')
             continue
         
         if time_zone_video:
@@ -217,7 +217,8 @@ def parse_gpx():
         input_file.close()
 
         if len(gpx.tracks) == 0:
-            raise Exception('File has no tracks')
+            print(f'{Fore.RED}{input_file} has no tracks and cannot be used{Style.RESET_ALL}')
+            continue
 
         for track in gpx.tracks:
 
