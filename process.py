@@ -2,34 +2,50 @@ import os
 import glob
 import pytz
 import gpxpy
+import argparse
 import traceback
+from colorama import Fore, Style
+from tzlocal import get_localzone
 from pymediainfo import MediaInfo
 from datetime import datetime, timedelta
 
 input_folder = 'input'
 output_folder = 'output'
 
-time_zone_gpx = 'America/Argentina/Buenos_Aires'
-time_zone_video = None
+time_zone_gpx = str(get_localzone())
+time_zone_video = str(get_localzone())
 
 # to interpolate coordinates betweeen existing points in the gpx
-# `None` to disable
+# `False` to disable
 interpolation_freq_in_seconds = 1
 
 # date could be the beggining or the end of the file
-stored_date_is_out = True
+stored_date_is_end = True
 
 output_file = ''
 
+parser = argparse.ArgumentParser(description='Script to sync video and gpx files and export a srt file for each video.')
+parser.add_argument('--tzvideo', default=time_zone_gpx, help='Video Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
+parser.add_argument('--tzgpx', default=time_zone_video, help='GPX Time zone. Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
+parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. `None` to disable (default: %(default)s)')
+parser.add_argument('--dateisstart', action='store_true', help='Stored metadata date match the start of the recording (default: %(default)s)')
+
+args = parser.parse_args()
+
 def init():
 
-    global output_file
+    global output_file, interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end
 
     try:
 
         print('--> PROCESS STARTED <--')
 
         print('\t')
+
+        interpolation_freq_in_seconds = args.interpolation
+        time_zone_video = string_to_num(args.tzvideo)
+        time_zone_gpx = string_to_num(args.tzgpx)
+        stored_date_is_end = not args.dateisstart
 
         parsed_videos = parse_videos()
         parsed_gpx = parse_gpx()
@@ -56,18 +72,28 @@ def init():
             print(f'End time: {pvideo["time_end"]}')
 
             if (points_found > 0):
-                print(f'-> GPX matched file {pvideo["file_name"]} witch {points_found} points')
+                print(f'{Fore.GREEN}-> Synced {points_found} GPX points{Style.RESET_ALL}')
                 write_srt(collect_srt, pvideo["file_name"])
                 synced += 1
             else:
-                print(f'-> WARNING: GPX tracks not synced with the video. Check the time zones.')
+                print(f'{Fore.YELLOW}-> WARNING: GPX tracks not synced with the video. Check the time zones.{Style.RESET_ALL}')
         
+        not_synced = len(parsed_videos)-synced
+
         print('\t')
         print('--> PROCESS WAS COMPLETED <--')
-        print('\t')
         print('------------------------------')
-        print(f'-> {synced} videos synced')
-        print(f'-> {(len(parsed_videos)-synced)} videos not synced')
+        print(f'-> Time zone GPX: {time_zone_gpx}')
+        print(f'-> Time zone Video: {time_zone_video}')
+        print(f'-> Interpolation frequency (sec): {interpolation_freq_in_seconds}')
+        print(f'-> Stored date match the end of the recording: {stored_date_is_end}')
+        
+        if synced:
+            print(f'{Fore.GREEN}-> {synced} videos synced{Style.RESET_ALL}')
+
+        if not_synced:
+            print(f'{Fore.YELLOW}-> {(not_synced)} videos not synced{Style.RESET_ALL}')
+
         print('------------------------------')
         
     except Exception as error:
@@ -129,15 +155,21 @@ def parse_videos():
         if isinstance(stored_date, str):
             print(f'{video} has unrecognized date format {stored_date} and cannot be used')
             continue
-            
+        
         if time_zone_video:
-            stored_date = stored_date.astimezone(
-                pytz.timezone(time_zone_video))
-        else:
+            if isinstance(time_zone_video, float):
+                offset = timedelta(0, round(time_zone_video * 60))
+                stored_date = stored_date + offset
+            else:
+                stored_date = stored_date.astimezone(
+                    pytz.timezone(time_zone_video))
+                         # add timezone if empty
+            
+        if stored_date.tzinfo is None or stored_date.tzinfo.utcoffset(stored_date) is None:
             utc = pytz.UTC
             stored_date = stored_date.replace(tzinfo=utc)
 
-        if stored_date_is_out == True:
+        if stored_date_is_end == True:
             time_start = stored_date - timedelta(0, round(duration_in_s))         
             time_end = stored_date 
         else:
@@ -196,9 +228,20 @@ def parse_gpx():
                 for point in segment.points:
 
                     # maybe correct the gpx timezone
-                    if time_zone_gpx:
-                        point.time = point.time.astimezone(
-                            pytz.timezone(time_zone_gpx))
+                    if time_zone_gpx:       
+                        if isinstance(time_zone_gpx, float):
+                            offset = timedelta(0, round(time_zone_gpx * 60))
+                            corrected_date = point.time + offset
+                        else:      
+                            corrected_date = point.time.astimezone(
+                                pytz.timezone(time_zone_gpx))
+                    
+                    # add timezone if empty
+                    if corrected_date.tzinfo is None or corrected_date.tzinfo.utcoffset(corrected_date) is None:
+                        utc = pytz.UTC
+                        corrected_date = point.time.replace(tzinfo=utc)
+
+                    point.time = corrected_date
 
                     if not start_time:
                         start_time = point.time
@@ -231,7 +274,6 @@ def parse_gpx():
 
     return parsed_gpx_points
 
-
 def write_srt(points, file_name):
 
     line_counter = 1
@@ -259,6 +301,12 @@ def write_srt(points, file_name):
 
     output_file.close()
 
+
+def string_to_num(string):
+    try:
+        return float(string)
+    except:
+        return string
 
 def intermediates(p1, p2, nb_points=8):
     x_spacing = (p2.latitude - p1.latitude) / (nb_points + 1)

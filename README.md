@@ -3,10 +3,7 @@ Script to sync video and gpx files (using the datetime metadata), to export a sr
 
 ## Instructions
 - Place the video files inside the input folder `input/videos` and the gpx files in `input/gpx`
-- Adjust time zone (gpx and video files separatly)
-- Adjust `stored_date_is_out`
-- Adjust or disable the interpolation frequency (this add extra coordinates betweeen the existing points on the gpx tracks)
-- Run `python process.py`
+- Run `python process.py --help` to show options
 - Check the console, check the `output` folder for the srt files
 
 ## Limitations / Known problems
@@ -17,5 +14,4 @@ Script to sync video and gpx files (using the datetime metadata), to export a sr
 ## @TODO
 - Improve README
 - Improve comments
-- Add console prompts or/and a separate file for parameters
 - Add option to offset the srt or the video in x seconds
