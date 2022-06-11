@@ -158,7 +158,7 @@ def parse_videos():
         
         if time_zone_video:
             if isinstance(time_zone_video, float):
-                offset = timedelta(0, round(time_zone_video * 60))
+                offset = timedelta(0, round(time_zone_video * 60 * 60))
                 stored_date = stored_date + offset
             else:
                 stored_date = stored_date.astimezone(
@@ -226,20 +226,22 @@ def parse_gpx():
                 start_time = None
 
                 for point in segment.points:
-
+                    
                     # maybe correct the gpx timezone
                     if time_zone_gpx:       
                         if isinstance(time_zone_gpx, float):
-                            offset = timedelta(0, round(time_zone_gpx * 60))
+                            offset = timedelta(0, time_zone_gpx * 60 * 60)
                             corrected_date = point.time + offset
                         else:      
                             corrected_date = point.time.astimezone(
                                 pytz.timezone(time_zone_gpx))
+                    else:
+                        corrected_date = point.time
                     
                     # add timezone if empty
                     if corrected_date.tzinfo is None or corrected_date.tzinfo.utcoffset(corrected_date) is None:
                         utc = pytz.UTC
-                        corrected_date = point.time.replace(tzinfo=utc)
+                        corrected_date = corrected_date.replace(tzinfo=utc)
 
                     point.time = corrected_date
 
