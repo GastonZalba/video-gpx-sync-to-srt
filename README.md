@@ -5,11 +5,11 @@ Script to sync video and gpx files recorded at the same time, exporting a srt fi
 - Install using `pip install -r requirements.txt` in a local enviroment
 
 ## Instructions
-- Run `python process.py --help` to show all options and available arguments
-- By default, place the videos and gpx files inside the input folder `/input` (or use custom locations passing the arguments `--foldervid path_to_videos/input` and `--foldergpx path_to_gpx/input`)
+- Run `python process.py --help` to show all options and availables arguments
+- By default, place the videos and gpx files inside the input folder `/input`. Or, use custom locations passing the arguments `--foldervid path_to_videos/input` and `--foldergpx path_to_gpx/input`
 - `python process.py` to run the script
-- Check the console for details and the `/output` folder (by default) for the exported srt files
-- If the files are not syncing, check (and maybe correct) the timezones using `--tzgpx` and `--tzvideo`. Also check passing the argument `--stored_date_is_end` to use the metadata date of the videos as the end of the file and not the start (the default behavior).
+- Check the console for details and the `/output` folder (the default) for the exported srt files
+- If the files are not syncing, check (and maybe correct) the timezones using `--tzgpx` and `--tzvideo`. Also check passing the argument `--stored_date_is_end` to use the metadata date of the videos as the end of the file recording and not the start (the default behavior).
 
 ## Limitations / Walkarounds
 - Timezones: some cameras store wrong information. Adjust this manually if you have problems syncing the files.
