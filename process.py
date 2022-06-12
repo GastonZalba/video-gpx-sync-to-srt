@@ -4,10 +4,12 @@ import pytz
 import gpxpy
 import argparse
 import traceback
-from colorama import Fore, Style
+from colorama import init, Fore, Style
 from tzlocal import get_localzone
 from pymediainfo import MediaInfo
 from datetime import datetime, timedelta
+
+init(convert=True)
 
 input_folder = 'input'
 output_folder = 'output'
