@@ -9,9 +9,11 @@ from tzlocal import get_localzone
 from pymediainfo import MediaInfo
 from datetime import datetime, timedelta
 
+# fix colorama colors in windows console
 init(convert=True)
 
-input_folder = 'input'
+input_folder_video = 'input'
+input_folder_gpx = 'input'
 output_folder = 'output'
 
 # by default, use local time zones
@@ -25,7 +27,8 @@ interpolation_freq_in_seconds = 0
 stored_date_is_end = False
 
 parser = argparse.ArgumentParser(description='Script to sync video and gpx files recorded at the same time, and export a srt file for each video.')
-parser.add_argument('--folder', type=str, metavar='Input folder', default=input_folder, help='Folder with the videos and gpx files (default: %(default)s)')
+parser.add_argument('--foldervid', type=str, metavar='Input video folder', default=input_folder_video, help='Folder with the videos files (default: %(default)s)')
+parser.add_argument('--foldergpx', type=str, metavar='Input gpx folder', default=input_folder_gpx, help='Folder with gpx files (default: %(default)s)')
 parser.add_argument('--output', type=str, metavar='Output folder', default=output_folder, help='Folder to export the srt files (default: %(default)s)')
 parser.add_argument('--tzvideo', default=time_zone_gpx, metavar='Video Time Zone', help='Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
 parser.add_argument('--tzgpx', default=time_zone_video, metavar='GPX Time Zone', help='Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
@@ -36,7 +39,7 @@ args = parser.parse_args()
 
 def init():
 
-    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder, output_folder
+    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder_video, input_folder_gpx, output_folder
 
     try:
 
@@ -48,7 +51,9 @@ def init():
         time_zone_video = string_to_num(args.tzvideo)
         time_zone_gpx = string_to_num(args.tzgpx)
         stored_date_is_end = args.dateisout
-        input_folder = args.folder
+        input_folder_video = args.foldervid
+        input_folder_gpx = args.foldergpx
+
         output_folder = args.output
 
         # check if output folder exists
@@ -136,7 +141,7 @@ def parse_videos():
         types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg')
         files_grabbed = []
         for type in types:
-            files_grabbed.extend(glob.glob(f'{input_folder}/{type}'))
+            files_grabbed.extend(glob.glob(f'{input_folder_video}/{type}'))
         return files_grabbed
 
     videos = get_videos()
@@ -144,7 +149,7 @@ def parse_videos():
     if len(videos):
         print(f'{Fore.GREEN}{len(videos)} videos have been found.{Style.RESET_ALL}')    
     else:
-        print(f'{Fore.RED}No videos have been found in folder "{input_folder}"{Style.RESET_ALL}')        
+        print(f'{Fore.RED}No videos have been found in folder "{input_folder_video}"{Style.RESET_ALL}')        
 
     for video in videos:
         media_info = MediaInfo.parse(video)
@@ -211,7 +216,7 @@ def parse_gpx():
     parsed_gpx_points = []
 
     def get_gpx():
-        return glob.glob(f'{input_folder}/*.gpx')
+        return glob.glob(f'{input_folder_gpx}/*.gpx')
 
     def store_point_track(point, prev_point, start_time, time_diff_seconds):
         parsed_gpx_points.append({
@@ -229,7 +234,7 @@ def parse_gpx():
     if len(gpxs):
         print(f'{Fore.GREEN}{len(gpxs)} gpx have been found.{Style.RESET_ALL}')    
     else:
-        print(f'{Fore.RED}No .gpx files have been found in folder "{input_folder}"{Style.RESET_ALL}')     
+        print(f'{Fore.RED}No .gpx files have been found in folder "{input_folder_gpx}"{Style.RESET_ALL}')     
 
     for gpx_path in gpxs:
 
