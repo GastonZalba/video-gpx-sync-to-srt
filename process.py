@@ -117,7 +117,7 @@ def init():
         print('------------------------------')
         
     except Exception as error:
-        print({Fore.RED}, error, {Style.RESET_ALL})
+        print(f'{Fore.RED}{error}{Style.RESET_ALL}')
         print(traceback.format_exc())
 
 
@@ -152,10 +152,17 @@ def parse_videos():
         print(f'{Fore.RED}No videos have been found in folder "{input_folder_video}"{Style.RESET_ALL}')        
 
     for video in videos:
-        media_info = MediaInfo.parse(video)
-        duration_in_s = int(float(media_info.tracks[0].duration)) / 1000
 
+        print(video)
+
+        # To solve some errors on sequentials mts        
+        mediainfo_opts = {'File_TestContinuousFileNames' : '0'}
+
+        media_info = MediaInfo.parse(video, mediainfo_options=mediainfo_opts)
+        
         video_track = media_info.tracks[0]
+
+        duration_in_s = int(float(video_track.duration)) / 1000
 
         # canon, phones, insta and others saves the date on this field
         # datetime of the end of the file
