@@ -26,6 +26,8 @@ interpolation_freq_in_seconds = 0
 # date could be the beginning or the end of the file
 stored_date_is_end = False
 
+offset_in_seconds = 0
+
 parser = argparse.ArgumentParser(description='Script to sync video and gpx files recorded at the same time, and export a srt file for each video.')
 parser.add_argument('--foldervid', type=str, metavar='Input video folder', default=input_folder_video, help='Folder with the videos files (default: %(default)s)')
 parser.add_argument('--foldergpx', type=str, metavar='Input gpx folder', default=input_folder_gpx, help='Folder with gpx files (default: %(default)s)')
@@ -34,12 +36,13 @@ parser.add_argument('--tzvideo', default=time_zone_gpx, metavar='Video Time Zone
 parser.add_argument('--tzgpx', default=time_zone_video, metavar='GPX Time Zone', help='Pass a timezone string or float hour values (Ex. -3.5). 0 to disable (default is current localzone: %(default)s)')
 parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. 0 to disable (default: %(default)s)')
 parser.add_argument('--dateisout', action='store_true', help='Stored metadata date match the end of the recording (default: %(default)s)')
+parser.add_argument('--offset', type=float, metavar='Offset video', default=offset_in_seconds, help='Seconds to offset the video date (default: %(default)s)')
 
 args = parser.parse_args()
 
 def init():
 
-    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder_video, input_folder_gpx, output_folder
+    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder_video, input_folder_gpx, output_folder, offset_in_seconds
 
     try:
 
@@ -53,6 +56,7 @@ def init():
         stored_date_is_end = args.dateisout
         input_folder_video = args.foldervid
         input_folder_gpx = args.foldergpx
+        offset_in_seconds = args.offset
 
         output_folder = args.output
 
@@ -106,8 +110,9 @@ def init():
         print(f'-> Time zone GPX: {time_zone_gpx}')
         print(f'-> Time zone Video: {time_zone_video}')
         print(f'-> Interpolation frequency (sec): {interpolation_freq_in_seconds}')
+        print(f'-> Offset time (sec): {offset_in_seconds}')
         print(f'-> Stored date match the end of the recording: {stored_date_is_end}')
-        
+
         if synced:
             print(f'{Fore.GREEN}-> {synced} videos synced{Style.RESET_ALL}')
 
@@ -188,8 +193,8 @@ def parse_videos():
         
         if time_zone_video:
             if isinstance(time_zone_video, float):
-                offset = timedelta(0, round(time_zone_video * 60 * 60))
-                stored_date = stored_date + offset
+                tz_offset = timedelta(0, round(time_zone_video * 60 * 60))
+                stored_date = stored_date + tz_offset
             else:
                 stored_date = stored_date.astimezone(
                     pytz.timezone(time_zone_video))
@@ -198,6 +203,9 @@ def parse_videos():
         if stored_date.tzinfo is None or stored_date.tzinfo.utcoffset(stored_date) is None:
             utc = pytz.UTC
             stored_date = stored_date.replace(tzinfo=utc)
+
+        if offset_in_seconds:
+            stored_date = stored_date + timedelta(0, offset_in_seconds)
 
         if stored_date_is_end == True:
             time_start = stored_date - timedelta(0, round(duration_in_s))         
@@ -345,15 +353,20 @@ def string_to_num(string):
         return string
 
 def intermediates(p1, p2, nb_points=8):
+    '''
+    Interpolate position values beteween existing coordinates
+    '''
     x_spacing = (p2.latitude - p1.latitude) / (nb_points + 1)
     y_spacing = (p2.longitude - p1.longitude) / (nb_points + 1)
     z_spacing = (p2.elevation - p1.elevation) / (nb_points + 1)
     t_spacing = (p2.time - p1.time) / (nb_points + 1)
+    
+    DECIMALS = 11
 
     return [
         gpxpy.gpx.GPXTrackPoint(
-            p1.latitude + i * x_spacing,
-            p1.longitude + i * y_spacing,
+            round(p1.latitude + i * x_spacing, DECIMALS),
+            round( p1.longitude + i * y_spacing, DECIMALS),
             elevation=round(p1.elevation + i * z_spacing, 2),
             time=p1.time + i * t_spacing
         )
