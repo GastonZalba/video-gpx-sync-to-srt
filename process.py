@@ -337,8 +337,9 @@ def write_srt(points, file_name):
         output_file.write(
             '<font size="36">FrameCnt : n/a, DiffTime : {:.0f}ms\n'.format(point['diff_time']))
         output_file.write(f'{point["time"]}\n')
+        altitude = f'[altitude: {point["elevation"]}]' if point['elevation'] else ''
         output_file.write(
-            f'[latitude : {point["latitude"]}] [longitude : {point["longitude"]}] [altitude: {point["elevation"]}] </font>\n')
+            f'[latitude : {point["latitude"]}] [longitude : {point["longitude"]}] {altitude} </font>\n')
         output_file.write('\n')
 
         line_counter += 1
@@ -357,8 +358,9 @@ def intermediates(p1, p2, nb_points=8):
     Interpolate position values beteween existing coordinates
     '''
     x_spacing = (p2.latitude - p1.latitude) / (nb_points + 1)
-    y_spacing = (p2.longitude - p1.longitude) / (nb_points + 1)
-    z_spacing = (p2.elevation - p1.elevation) / (nb_points + 1)
+    y_spacing = (p2.longitude - p1.longitude) / (nb_points + 1)   
+    z_spacing = (p2.elevation - p1.elevation) / (nb_points + 1) if p1.elevation and p2.elevation else None
+
     t_spacing = (p2.time - p1.time) / (nb_points + 1)
     
     DECIMALS = 11
@@ -367,7 +369,7 @@ def intermediates(p1, p2, nb_points=8):
         gpxpy.gpx.GPXTrackPoint(
             round(p1.latitude + i * x_spacing, DECIMALS),
             round( p1.longitude + i * y_spacing, DECIMALS),
-            elevation=round(p1.elevation + i * z_spacing, 2),
+            elevation=None if not z_spacing else round(p1.elevation + i * z_spacing, 2),
             time=p1.time + i * t_spacing
         )
         for i in range(1, nb_points+1)
