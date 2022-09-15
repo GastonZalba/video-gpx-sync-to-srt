@@ -25,6 +25,7 @@ interpolation_freq_in_seconds = 0
 
 # date could be the beginning or the end of the file
 stored_date_is_end = False
+stored_discard_elevation = False
 
 offset_in_seconds = 0
 
@@ -37,12 +38,13 @@ parser.add_argument('--tzgpx', default=time_zone_video, metavar='GPX Time Zone',
 parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_seconds, help='Interpolation frequency (in seconds) to create points between the existing gpx coordinates. 0 to disable (default: %(default)s)')
 parser.add_argument('--dateisout', action='store_true', help='Stored metadata date match the end of the recording (default: %(default)s)')
 parser.add_argument('--offset', type=float, metavar='Offset video', default=offset_in_seconds, help='Seconds to offset the video date (default: %(default)s)')
+parser.add_argument('--discardelevation', action='store_true', help='Discard elevation values (default: %(default)s)')
 
 args = parser.parse_args()
 
 def init():
 
-    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, input_folder_video, input_folder_gpx, output_folder, offset_in_seconds
+    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, stored_discard_elevation, input_folder_video, input_folder_gpx, output_folder, offset_in_seconds
 
     try:
 
@@ -57,6 +59,7 @@ def init():
         input_folder_video = args.foldervid
         input_folder_gpx = args.foldergpx
         offset_in_seconds = args.offset
+        stored_discard_elevation = args.discardelevation
 
         output_folder = args.output
 
@@ -241,7 +244,7 @@ def parse_gpx():
             "diff_time": time_diff_seconds*1000,
             "latitude": point.latitude,
             "longitude": point.longitude,
-            "elevation": point.elevation
+            "elevation": None if stored_discard_elevation else point.elevation
         })
 
     gpxs = get_gpx()
@@ -359,6 +362,8 @@ def intermediates(p1, p2, nb_points=8):
     '''
     x_spacing = (p2.latitude - p1.latitude) / (nb_points + 1)
     y_spacing = (p2.longitude - p1.longitude) / (nb_points + 1)   
+    z_spacing = None
+
     z_spacing = (p2.elevation - p1.elevation) / (nb_points + 1) if p1.elevation and p2.elevation else None
 
     t_spacing = (p2.time - p1.time) / (nb_points + 1)
