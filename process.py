@@ -146,7 +146,7 @@ def parse_videos():
     parsed_videos = []
 
     def get_videos():
-        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg')
+        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg', '*.insv')
         files_grabbed = []
         for type in types:
             files_grabbed.extend(glob.glob(f'{input_folder_video}/{type}'))
