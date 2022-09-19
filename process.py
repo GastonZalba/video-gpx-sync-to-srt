@@ -265,10 +265,10 @@ def parse_gpx():
             continue
 
         for track in gpx.tracks:
+            prev_point = None
+            start_time = None
 
-            for segment in track.segments:
-                prev_point = None
-                start_time = None
+            for segment in track.segments:          
 
                 for point in segment.points:
                     
