@@ -297,6 +297,13 @@ def parse_gpx():
 
                         time_diff = point.time - prev_point.time
                         time_diff_seconds = time_diff.total_seconds()
+                        
+                        # if difference is bigger than x hours, don't interpolate
+                        max_hours_diff = 12
+                        if time_diff_seconds > max_hours_diff * 60 * 60:
+                            prev_point = None
+                            start_time = None
+                            break
 
                         if interpolation_freq_in_seconds:
                             intermediate_points = []
