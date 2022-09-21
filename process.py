@@ -349,7 +349,7 @@ def write_srt(points, file_name):
         output_file.write(f'{point["time"]}\n')
         altitude = f'[altitude: {point["elevation"]}]' if point['elevation'] else ''
         output_file.write(
-            f'[latitude : {point["latitude"]}] [longitude : {point["longitude"]}] {altitude} </font>\n')
+            f'[latitude : {point["latitude"]}] [longitude : {point["longitude"]}] {altitude}</font>\n')
         output_file.write('\n')
 
         line_counter += 1
