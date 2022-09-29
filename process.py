@@ -4,6 +4,7 @@ import pytz
 import gpxpy
 import argparse
 import traceback
+import mimetypes
 from colorama import init, Fore, Style
 from tzlocal import get_localzone
 from pymediainfo import MediaInfo
@@ -29,6 +30,8 @@ stored_discard_elevation = False
 
 offset_in_seconds = 0
 
+video_extensions = ['mp4', 'mts', 'mov', 'h264', 'avi', 'm2v', 'mxf', 'mkv', 'mpeg', 'mpg', 'insv', 'f4v']
+
 parser = argparse.ArgumentParser(description='Script to sync video and gpx files recorded at the same time, and export a srt file for each video.')
 parser.add_argument('--foldervid', type=str, metavar='Input video folder', default=input_folder_video, help='Folder with the videos files (default: %(default)s)')
 parser.add_argument('--foldergpx', type=str, metavar='Input gpx folder', default=input_folder_gpx, help='Folder with gpx files (default: %(default)s)')
@@ -39,12 +42,13 @@ parser.add_argument('--interpolation', type=int, default=interpolation_freq_in_s
 parser.add_argument('--dateisout', action='store_true', help='Stored metadata date match the end of the recording (default: %(default)s)')
 parser.add_argument('--offset', type=float, metavar='Offset video', default=offset_in_seconds, help='Seconds to offset the video date (default: %(default)s)')
 parser.add_argument('--discardelevation', action='store_true', help='Discard elevation values (default: %(default)s)')
+parser.add_argument('--videoext', action="append", default=video_extensions, metavar='Video extension', help='Add custom video extensions. (default is: %(default)s)')
 
 args = parser.parse_args()
 
 def init():
 
-    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, stored_discard_elevation, input_folder_video, input_folder_gpx, output_folder, offset_in_seconds
+    global interpolation_freq_in_seconds, time_zone_gpx, time_zone_video, stored_date_is_end, stored_discard_elevation, input_folder_video, input_folder_gpx, output_folder, offset_in_seconds, video_extensions
 
     try:
 
@@ -60,6 +64,7 @@ def init():
         input_folder_gpx = args.foldergpx
         offset_in_seconds = args.offset
         stored_discard_elevation = args.discardelevation
+        video_extensions = args.videoformat
 
         output_folder = args.output
 
@@ -146,7 +151,10 @@ def parse_videos():
     parsed_videos = []
 
     def get_videos():
-        types = ('*.mp4', '*.mts', '*.mov', '.*.h264', '*.avi', '*.m2v', '*.mxf', '*.mkv', '*.mpeg', '*.mpg', '*.insv')
+        
+        types = [('*.'+ v) for v in video_extensions]
+        print(types)
+
         files_grabbed = []
         for type in types:
             files_grabbed.extend(glob.glob(f'{input_folder_video}/{type}'))
