@@ -64,7 +64,7 @@ def init():
         input_folder_gpx = args.foldergpx
         offset_in_seconds = args.offset
         stored_discard_elevation = args.discardelevation
-        video_extensions = args.videoformat
+        video_extensions = args.videoext
 
         output_folder = args.output
 
@@ -153,7 +153,6 @@ def parse_videos():
     def get_videos():
         
         types = [('*.'+ v) for v in video_extensions]
-        print(types)
 
         files_grabbed = []
         for type in types:
