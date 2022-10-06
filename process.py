@@ -30,7 +30,7 @@ stored_discard_elevation = False
 
 offset_in_seconds = 0
 
-video_extensions = ['mp4', 'mts', 'mov', 'h264', 'avi', 'm2v', 'mxf', 'mkv', 'mpeg', 'mpg', 'insv', 'f4v']
+video_extensions = ['mp4', 'mts', 'mov', 'h264', 'h265', 'avi', 'm2v', 'm4v', 'mxf', 'mkv', 'mpeg', 'mpg', 'insv', 'f4v']
 
 parser = argparse.ArgumentParser(description='Script to sync video and gpx files recorded at the same time, and export a srt file for each video.')
 parser.add_argument('--foldervid', type=str, metavar='Input video folder', default=input_folder_video, help='Folder with the videos files (default: %(default)s)')
