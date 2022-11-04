@@ -4,7 +4,6 @@ import pytz
 import gpxpy
 import argparse
 import traceback
-import mimetypes
 from colorama import init, Fore, Style
 from tzlocal import get_localzone
 from pymediainfo import MediaInfo
@@ -278,7 +277,6 @@ def parse_gpx():
             for segment in track.segments:          
 
                 for point in segment.points:
-                    
                     # maybe correct the gpx timezone
                     if time_zone_gpx:       
                         if isinstance(time_zone_gpx, float):
@@ -308,9 +306,9 @@ def parse_gpx():
                         # if difference is bigger than x hours, don't interpolate
                         max_hours_diff = 12
                         if time_diff_seconds > max_hours_diff * 60 * 60:
-                            prev_point = None
-                            start_time = None
-                            break
+                            prev_point = point
+                            start_time = point.time
+                            continue
 
                         if interpolation_freq_in_seconds:
                             intermediate_points = []
