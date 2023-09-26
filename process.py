@@ -345,10 +345,23 @@ def write_srt(points, file_name):
     
     for point in points:
         output_file.write('{0}\n'.format(line_counter))
+        
+        num_in = (point['start_time'] - base_time)
+        num_out = (point['end_time'] - base_time)
+
+        num_in = str(num_in).split('.')
+        num_out = str(num_out).split('.')
+
+        num_in_decimals = num_in[1] if (len(num_in) > 1) else '000'
+        num_in = num_in[0]
+
+        num_out_decimals = num_out[1] if (len(num_out) > 1) else '000'
+        num_out = num_out[0]
 
         # Use mavic 2 srt format
         output_file.write(
-            '0{0},000 --> 0{1},000\n'.format((point['start_time'] - base_time), (point['end_time'] - base_time)))
+            '0{0},{1:.3} --> 0{2},{3:.3}\n'.format(num_in, num_in_decimals, num_out, num_out_decimals)
+        )
         output_file.write(
             '<font size="36">FrameCnt : n/a, DiffTime : {:.0f}ms\n'.format(point['diff_time']))
         output_file.write(f'{point["time"]}\n')
