@@ -137,7 +137,8 @@ def parse_videos(input_folder_video, video_extensions, time_zone_video, offset_i
     datetime_formats = [
         '%Z %Y-%m-%d %H:%M:%S',
         '%Y-%m-%d %H:%M:%S%z',
-        '%Y-%m-%d %H:%M:%S.%f'
+        '%Y-%m-%d %H:%M:%S.%f',
+        '%Y-%m-%d %H:%M:%S %Z'
     ]
 
     parsed_videos = []
