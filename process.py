@@ -95,11 +95,11 @@ def main():
             print(f'End time: {pvideo["time_end"]}')
 
             if (points_found > 0):
-                print(f'{Fore.GREEN}-> Synced {points_found} GPX points{Style.RESET_ALL}')
+                print(f'{Fore.GREEN}-> Synced {points_found} GPX points with this video{Style.RESET_ALL}')
                 write_srt(collect_srt, pvideo["file_name"], output_folder)
                 synced += 1
             else:
-                print(f'{Fore.YELLOW}-> WARNING: GPX tracks not synced with the video. Check the time zones.{Style.RESET_ALL}')
+                print(f'{Fore.YELLOW}-> WARNING: GPX tracks not synced with the video. Correct the offset or check the time zones to adjust overlapping.{Style.RESET_ALL}')
                 print('\t')
 
         not_synced = len(parsed_videos)-synced
@@ -160,8 +160,6 @@ def parse_videos(input_folder_video, video_extensions, time_zone_video, offset_i
         print(f'{Fore.RED}No videos have been found in folder "{input_folder_video}"{Style.RESET_ALL}')        
 
     for video in videos:
-
-        print(video)
 
         # To solve some errors on sequentials mts        
         mediainfo_opts = {'File_TestContinuousFileNames' : '0'}
@@ -256,6 +254,9 @@ def parse_gpx(input_folder_gpx, time_zone_gpx, interpolation_freq_in_seconds, st
 
     for gpx_path in gpxs:
 
+        print('\t')
+        print(f'GPX name: {gpx_path}')
+
         input_file = open(gpx_path, 'r')
         gpx = gpxpy.parse(input_file)
         input_file.close()
@@ -264,11 +265,28 @@ def parse_gpx(input_folder_gpx, time_zone_gpx, interpolation_freq_in_seconds, st
             print(f'{Fore.RED}{input_file} has no tracks and cannot be used{Style.RESET_ALL}')
             continue
 
+        print(f'Tracks found: {len(gpx.tracks)}')
+
         for track in gpx.tracks:
             prev_point = None
             start_time = None
+            
+            print(f'-> Track name: {track.name}')
+            print(f'-> Segments found: {len(track.segments)}')
 
-            for segment in track.segments:          
+            for i, segment in enumerate(track.segments):
+                len_points = len(segment.points)
+
+                print('\t')
+                print(f'--> Segment Nº{i+1}')
+                print(f'---> Points: {len_points}')           
+
+                if len_points:
+                    start_time = segment.points[0].time
+                    end_time = segment.points[len_points-1].time
+                    print(f'---> Start time: {start_time}')
+                    print(f'---> End time: {end_time}')
+                    print(f'---> Duration: {end_time - start_time}')
 
                 for point in segment.points:
                     # maybe correct the gpx timezone
@@ -290,7 +308,7 @@ def parse_gpx(input_folder_gpx, time_zone_gpx, interpolation_freq_in_seconds, st
                     point.time = corrected_date
 
                     if not start_time:
-                        start_time = point.time
+                        start_time = point.time              
 
                     if prev_point:
 
