@@ -12,10 +12,11 @@ Script to sync video and gpx files recorded at the same time, exporting a srt fi
 - By default, place the videos and gpx files inside the input folder `/input`. Or, use custom locations passing the arguments `--foldervid path_to_videos/input` and `--foldergpx path_to_gpx/input`
 - `python process.py` to run the script
 - Check the console for details and the `/output` folder (the default) for the exported srt files
-- If the files are not syncing, check (and maybe correct) the timezones using `--tzgpx` and `--tzvideo`. Also check passing the argument `--stored_date_is_end` to use the metadata date of the videos as the end of the file recording and not the start (the default behavior).
 
-## Limitations / Walkarounds
-- Timezones: some cameras store wrong information. Adjust this manually if you have problems syncing the files.
-- The script search the date in the attributes: `Encoded date`, `Recorded date` and `Creation date` (in that order)
-- Some cameras store the start of the recording as the datetime, and others stores the end of it. Use the argument `--dateisout` to change this if you have problems syncing.
-- This two problems can be easely be solved adjusting these two parameters, but in the other hand, this can prevent bulk processing of mixed video formats. If this is your case, process each format in a separate instance setting properly each case.
+
+## If not syncing
+- Check (and maybe correct) the timezones using `--tzgpx` and `--tzvideo`. Some cameras store wrong information, adjust this manually 
+- Check passing the argument `--dateisout` to use the date of the videos as the end of the file recording and not the start (the default behavior). Some cameras store the start of the recording as the datetime, and others stores the end of it.
+
+## NOTES
+- The script looks for the date in the attributes: `Encoded date`, `Recorded date` and `Creation date` (in that order)
