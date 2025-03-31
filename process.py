@@ -178,7 +178,11 @@ def parse_videos(input_folder_video, video_extensions, time_zone_video, offset_i
         if not stored_date:
             # sony and panasonic cameras
             stored_date = video_track.recorded_date
-
+        
+        if not stored_date:
+            # last attempt to catch a date, use the creation date...
+            stored_date = video_track.file_creation_date__local
+            
         for df in datetime_formats:
             conversion = date_string_to_datetime(stored_date, df)
             if conversion:

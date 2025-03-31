@@ -13,5 +13,6 @@ Script to sync video and gpx files recorded at the same time, exporting a srt fi
 
 ## Limitations / Walkarounds
 - Timezones: some cameras store wrong information. Adjust this manually if you have problems syncing the files.
-- Encoded/recorded date: some cameras store the start of the recording as the datetime, and others stores the end of it. Change this if you have problems syncing.
+- The script search the date in the attributes: `Encoded date`, `Recorded date` and `Creation date` (in that order)
+- Some cameras store the start of the recording as the datetime, and others stores the end of it. Use the argument `--dateisout` to change this if you have problems syncing.
 - This two problems can be easely be solved adjusting these two parameters, but in the other hand, this can prevent bulk processing of mixed video formats. If this is your case, process each format in a separate instance setting properly each case.
